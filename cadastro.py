@@ -39,6 +39,7 @@ def cadastro():
         salvamento(nome, tipo, numero)
         salvamento_bem_sucedido()
         limpar_campos()
+        verificar_estado_botoes()
 
 def item_selecionado():
     selecionado = tree.selection()
@@ -47,7 +48,7 @@ def item_selecionado():
 
 def validacao_selecao(selecionado):
     if not selecionado:
-        messagebox.showerror("Erro", "Nenhum item selecionado.")
+        messagebox.showerror("Erro", "Nehum item selecionado.")
         return False
     
     return True
@@ -57,13 +58,6 @@ def apagar_selecionado(selecionado):
 
 def mensagem_itens_apagados_sucesso():
     messagebox.showinfo("Sucesso", "Certificado(s) apagado(s) com sucesso.")
-
-def validacao_itens_treeview():
-    if not tree.get_children():
-        messagebox.showerror("Erro", "Nenhum item encontrado.")
-        return False
-    
-    return True
 
 def mensagem_item_atualizado_sucesso():
     messagebox.showinfo("Sucesso", "Certificado atualizado com sucesso.")
@@ -76,47 +70,48 @@ def decisao_apagar_todos():
 
     return decisao
 
-def botao_apagar():
-    if validacao_itens_treeview():
-        if decisao_apagar_todos():
-            for item in tree.get_children():
-                tree.delete(item)
-            mensagem_itens_apagados_sucesso()
+def botao_apagar_tudo():
+    if decisao_apagar_todos():
+        for item in tree.get_children():
+            tree.delete(item)
+        mensagem_itens_apagados_sucesso()
+        verificar_estado_botoes()
 
 def decisao_apagar_selecionado():
     decisao = messagebox.askyesno("Confirmar", "Tem certeza que deseja apagar o certificado selecionado?")
 
     return decisao
 
-def decisao_exportar_csv():
-    decisao = messagebox.askyesno("Confirmar", "Tem certeza que deseja exportar o cadastro para um arquivo csv?")
+def botao_apagar_selecionado():
+    selecionado = item_selecionado()
+    if validacao_selecao(selecionado):
+        if decisao_apagar_selecionado():
+            apagar_selecionado(selecionado)
+            mensagem_itens_apagados_sucesso()
+            verificar_estado_botoes()
+
+def decisao_atualizar_certificado():
+    decisao = messagebox.askyesno("Confirmar", "Tem certeza que deseja atualizar o certificado selecionado?")
 
     return decisao
 
-def botao_apagar_selecionado():
-    selecionado = item_selecionado()
-    if validacao_itens_treeview():
-        if validacao_selecao(selecionado):
-            if decisao_apagar_selecionado():
-                apagar_selecionado(selecionado)
-                mensagem_itens_apagados_sucesso()
-
 def botao_atualizar_certificado():
     selecionado = item_selecionado()
-    if validacao_itens_treeview():
-        if validacao_selecao(selecionado):
+    if validacao_selecao(selecionado):
+        if decisao_atualizar_certificado():
             nome, tipo, numero = entrada_variaveis()
-            tree.item(selecionado, values=(nome, tipo, numero))
-            mensagem_item_atualizado_sucesso()
+            if validacao(nome, tipo, numero):
+                tree.item(selecionado, values=(nome, tipo, numero))
+                mensagem_item_atualizado_sucesso()
+                limpar_campos()
+                verificar_estado_botoes()
 
 def botao_exportar_csv():
-    if validacao_itens_treeview():
-        if decisao_exportar_csv():
-            with open("cadastro.csv", "w", encoding="utf-8") as arquivo:
-                for item in tree.get_children():
-                    nome, tipo, numero = tree.item(item, "values")
-                    arquivo.write(f'{nome}, {tipo}, {numero}\n')
-                mensagem_itens_exportados_sucesso()
+    with open("cadastro.csv", "w", encoding="utf-8") as arquivo:
+        for item in tree.get_children():
+            nome, tipo, numero = tree.item(item, "values")
+            arquivo.write(f'{nome},{tipo},{numero}\n')
+        mensagem_itens_exportados_sucesso()
 
 def ordenar_coluna(treeview, coluna, reverso):
     lista = [(treeview.set(k, coluna), k) for k in treeview.get_children('')]
@@ -126,6 +121,18 @@ def ordenar_coluna(treeview, coluna, reverso):
         treeview.move(k, '', index)
 
     treeview.heading(coluna, command=lambda: ordenar_coluna(treeview, coluna, not reverso))
+
+def verificar_estado_botoes():
+    if tree.get_children():
+        bt_apagar.config(state="normal")
+        bt_apagar_selecionado.config(state="normal")
+        bt_atualizar_certificado.config(state="normal")
+        bt_exportar_csv.config(state="normal")
+    else:
+        bt_apagar.config(state="disabled")
+        bt_apagar_selecionado.config(state="disabled")
+        bt_atualizar_certificado.config(state="disabled")
+        bt_exportar_csv.config(state="disabled")
 
 root = ThemedTk(theme="equilux")
 root.title("Cadastro de certificados")
@@ -170,10 +177,14 @@ tree.pack(padx=5)
 frame_botao_2 = ttk.Frame(frame_treeview)
 frame_botao_2.pack(pady=(10, 0))
 
-ttk.Button(frame_botao_2, text="Apagar", width=10, command=botao_apagar).pack(side="left", padx=2)
-ttk.Button(frame_botao_2, text="Apagar selecionado", width=18, command=botao_apagar_selecionado).pack(side="left", padx=2)
-ttk.Button(frame_botao_2, text="Atualizar certificado", width=18, command=botao_atualizar_certificado).pack(side="left", padx=2)
-ttk.Button(frame_botao_2, text="Exportar csv", width=18, command=botao_exportar_csv).pack(side="left", padx=2)
+bt_apagar = ttk.Button(frame_botao_2, text="Apagar tudo", width=15, command=botao_apagar_tudo, state="disabled")
+bt_apagar.pack(side="left", padx=2)
+bt_apagar_selecionado = ttk.Button(frame_botao_2, text="Apagar selecionado", width=18, command=botao_apagar_selecionado, state="disabled")
+bt_apagar_selecionado.pack(side="left", padx=2)
+bt_atualizar_certificado = ttk.Button(frame_botao_2, text="Atualizar certificado", width=18, command=botao_atualizar_certificado, state="disabled")
+bt_atualizar_certificado.pack(side="left", padx=2)
+bt_exportar_csv = ttk.Button(frame_botao_2, text="Exportar csv", width=18, command=botao_exportar_csv, state="disabled")
+bt_exportar_csv.pack(side="left", padx=2)
 
 root.mainloop()
 
